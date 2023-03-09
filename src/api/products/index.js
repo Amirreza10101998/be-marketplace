@@ -1,72 +1,101 @@
 import express from "express";
 import createHttpError from "http-errors";
+import multer from "multer";
+import { extname } from "path"
 import { findProductById, findProductByIdAndDelete, findProductByIdAndUpdate, findProducts, saveNewProduct } from "../../lib/db/tools.js";
-import { getProducts } from "../../lib/fs/tools.js";
+import { getProducts, saveProductImages } from "../../lib/fs/tools.js";
 
 const productsRouter = express.Router();
 
 //1. Post a product
-productsRouter.post("/", async (req, res,next) => {
-    try {
-        const id = await saveNewProduct(req.body)
-        res.status(201).send({message: `Product with id: ${id} uploaded successfully`})
-    } catch (error) {
-        next(error);
-    };
-});
+productsRouter.post("/",
+    async (req, res, next) => {
+        try {
+            const id = await saveNewProduct(req.body)
+            res.status(201).send({ message: `Product with id: ${id} uploaded successfully` })
+        } catch (error) {
+            next(error);
+        };
+    });
 
 //2. Returns a list of products
-productsRouter.get("/", async (req, res,next) => {
-    try {
-        const products = await findProducts();
-        res.send(products)
-    } catch (error) {
-        next(error);
-    };
-});
+productsRouter.get("/",
+    async (req, res, next) => {
+        try {
+            const products = await findProducts();
+            res.send(products)
+        } catch (error) {
+            next(error);
+        };
+    });
 
 //3. Returns a single product
-productsRouter.get("/:productId", async (req, res,next) => {
-    try {
-        const product = await findProductById(req.params.productId)
-        if (product) {
-            res.send(product)
-        } else {
-            next(createHttpError(`Product with id: ${req.params.productId} not found!`))
-        }
-    } catch (error) {
-        next(error);
-    };
-});
+productsRouter.get("/:productId",
+    async (req, res, next) => {
+        try {
+            const product = await findProductById(req.params.productId)
+            if (product) {
+                res.send(product)
+            } else {
+                next(createHttpError(`Product with id: ${req.params.productId} not found!`))
+            }
+        } catch (error) {
+            next(error);
+        };
+    });
 
 //4. Edit a single product with a given id
-productsRouter.put("/:productId", async (req, res,next) => {
-    try {
-        const updatedProduct = await findProductByIdAndUpdate(req.params.productId, req.body);
+productsRouter.put("/:productId",
+    async (req, res, next) => {
+        try {
+            const updatedProduct = await findProductByIdAndUpdate(req.params.productId, req.body);
 
-        if (updatedProduct) {
-            res.send(updatedProduct)
-        } else {
-            next(createHttpError(`Product with id: ${req.params.productId} not found!`))
-        }
-    } catch (error) {
-        next(error);
-    };
-});
+            if (updatedProduct) {
+                res.send(updatedProduct)
+            } else {
+                next(createHttpError(`Product with id: ${req.params.productId} not found!`))
+            }
+        } catch (error) {
+            next(error);
+        };
+    });
 
 //5. Delete a single product with a given id
-productsRouter.delete("/:productId", async (req, res,next) => {
-    try {
-        const updatedProduct = await findProductByIdAndDelete(req.params.productId);
+productsRouter.delete("/:productId",
+    async (req, res, next) => {
+        try {
+            const updatedProduct = await findProductByIdAndDelete(req.params.productId);
 
-        if (updatedProduct !== null) {
-            res.status(204).send(`Product with id: ${req.params.productId} deleted`)
-        } else {
-            next(createHttpError(`Product with id: ${req.params.productId} not found!`))
+            if (updatedProduct !== null) {
+                res.status(204).send(`Product with id: ${req.params.productId} deleted`)
+            } else {
+                next(createHttpError(`Product with id: ${req.params.productId} not found!`))
+            }
+        } catch (error) {
+            next(error);
+        };
+    });
+
+//6. Upload an Image
+productsRouter.patch(
+    "/:productId/upload",
+    multer().single("productImage"),
+    async (req, res, next) => {
+        try {
+            const filename = req.params.productId + extname(req.file.originalname)
+            const product = await findProductByIdAndUpdate(req.params.productId, { imageURL: `/img/products/${filename}` })
+
+            res.send(product)
+
+            if (product) {
+                await saveProductImages(req.file.buffer, filename)
+                res.send(product)
+            } else {
+                next(createHttpError(`Product with id: ${req.params.productId} not found!`))
+            }
+        } catch (error) {
+            next()
         }
-    } catch (error) {
-        next(error);
-    };
-});
+    });
 
 export default productsRouter;

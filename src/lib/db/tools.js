@@ -1,11 +1,11 @@
-import { getProducts, writeProducts } from "../fs/tools.js";
+import { deleteProductImage, getProducts, writeProducts } from "../fs/tools.js";
 import uniqid from "uniqid"
 
 
 export const saveNewProduct = async newProductData => {
     const products = await getProducts();
 
-    const newProduct = {...newProductData, createdAt: new Date(), id: uniqid(), reviews: []};
+    const newProduct = { ...newProductData, createdAt: new Date(), id: uniqid(), reviews: [] };
 
     products.push(newProduct);
 
@@ -29,7 +29,7 @@ export const findProductByIdAndUpdate = async (productId, updates) => {
     const index = products.findIndex(product => product.id === productId);
 
     if (index !== -1) {
-        products[index] = {...products[index], ...updates, updatedAt: new Date()}
+        products[index] = { ...products[index], ...updates, updatedAt: new Date() }
         await writeProducts(products)
         return products[index]
     } else {
@@ -42,6 +42,7 @@ export const findProductByIdAndDelete = async productId => {
 
     const product = await findProductById(productId);
     if (product) {
+        await deleteProductImage(product.imageURL)
         const remainingProducts = products.filter(product => product.id !== productId)
         await writeProducts(remainingProducts)
     } else {

@@ -12,7 +12,7 @@ server.use(cors());
 server.use(express.json());
 
 /*----------Endpoints----------*/
-server.use("/products", productsRouter )
+server.use("/products", productsRouter)
 
 /*----------Error Handlers----------*/
 server.use(badRequestHandler);
